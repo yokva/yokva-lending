@@ -36,3 +36,12 @@ During local dev/preview, emails are written to:
 - `data/waitlist-emails.txt`
 
 The file is ignored by git (`.gitignore`) and not committed.
+
+## Cloudflare Pages waitlist (production)
+
+Production uses Pages Functions with D1:
+
+- Function: `functions/api/waitlist.ts`
+- SQL schema: `migrations/0001_waitlist.sql`
+
+In Cloudflare Pages, add a D1 binding named `WAITLIST_DB`.
