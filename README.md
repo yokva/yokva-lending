@@ -44,4 +44,8 @@ Production uses Pages Functions with D1:
 - Function: `functions/api/waitlist.ts`
 - SQL schema: `migrations/0001_waitlist.sql`
 
-In Cloudflare Pages, add a D1 binding named `WAITLIST_DB`.
+In Cloudflare Pages, configure:
+
+- D1 binding named `WAITLIST_DB`
+- Environment variable `TURNSTILE_SECRET_KEY` (Turnstile secret key)
+- Frontend variable `VITE_TURNSTILE_SITE_KEY` (Turnstile site key)

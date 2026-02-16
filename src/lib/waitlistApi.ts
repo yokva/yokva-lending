@@ -29,14 +29,14 @@ export async function fetchWaitlist(): Promise<WaitlistData> {
   return parsed.data;
 }
 
-export async function joinWaitlist(email: string): Promise<WaitlistData> {
+export async function joinWaitlist(email: string, turnstileToken?: string): Promise<WaitlistData> {
   const response = await fetch('/api/waitlist', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, turnstileToken }),
   });
 
   const parsed = await parseResponse(response);

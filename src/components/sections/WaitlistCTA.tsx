@@ -14,12 +14,17 @@ function getInitial(email: string) {
 }
 
 export function WaitlistCTA({ copy }: WaitlistProps) {
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() || ''
   const [email, setEmail] = useState('')
   const [savedEmails, setSavedEmails] = useState<string[]>([])
+  const [agreed, setAgreed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [turnstileReady, setTurnstileReady] = useState(false)
   const { ref, isVisible } = useReveal<HTMLElement>(0.2)
+  const [widgetContainer, setWidgetContainer] = useState<HTMLDivElement | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -50,6 +55,57 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
     return [...dynamic, ...PLACEHOLDER_INITIALS.slice(0, missing)]
   }, [visibleEmails])
 
+  useEffect(() => {
+    if (!turnstileSiteKey || !widgetContainer || typeof window === 'undefined') {
+      return
+    }
+
+    let canceled = false
+    let attempts = 0
+    let timerId: number | null = null
+
+    const tryRender = () => {
+      if (canceled) return
+
+      const turnstile = window.turnstile
+      if (!turnstile) {
+        if (attempts < 80) {
+          attempts += 1
+          timerId = window.setTimeout(tryRender, 120)
+        }
+        return
+      }
+
+      if (widgetContainer.dataset.rendered === 'true') {
+        setTurnstileReady(true)
+        return
+      }
+
+      turnstile.render(widgetContainer, {
+        sitekey: turnstileSiteKey,
+        theme: 'light',
+        callback: (token: string) => {
+          setTurnstileToken(token)
+          setError(null)
+        },
+        'expired-callback': () => setTurnstileToken(''),
+        'error-callback': () => setTurnstileToken(''),
+      })
+
+      widgetContainer.dataset.rendered = 'true'
+      setTurnstileReady(true)
+    }
+
+    tryRender()
+
+    return () => {
+      canceled = true
+      if (timerId !== null) {
+        window.clearTimeout(timerId)
+      }
+    }
+  }, [turnstileSiteKey, widgetContainer])
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
@@ -60,15 +116,32 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
       return
     }
 
+    if (!agreed) {
+      setError(copy.errorConsentRequired)
+      setMessage(null)
+      return
+    }
+
+    if (turnstileSiteKey && !turnstileToken) {
+      setError(copy.errorTurnstileRequired)
+      setMessage(null)
+      return
+    }
+
     setSubmitting(true)
     setError(null)
     setMessage(null)
 
     try {
-      const data = await joinWaitlist(normalized)
+      const data = await joinWaitlist(normalized, turnstileToken)
       setSavedEmails(data.emails)
       setEmail('')
       setMessage(copy.success)
+      setTurnstileToken('')
+
+      if (turnstileSiteKey && widgetContainer && window.turnstile) {
+        window.turnstile.reset(widgetContainer)
+      }
     } catch {
       setError(copy.errorNetwork)
     } finally {
@@ -136,10 +209,47 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
           </button>
         </form>
 
+        <label
+          className={cn(
+            'reveal reveal-right mt-4 inline-flex items-start gap-2 text-sm text-white/82',
+            isVisible && 'reveal-visible',
+          )}
+        >
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(event) => setAgreed(event.target.checked)}
+            className="focus-ring mt-0.5 size-4 rounded border border-white accent-[var(--accent)]"
+          />
+          <span>{copy.consentLabel}</span>
+        </label>
+
+        {turnstileSiteKey ? (
+          <div
+            className={cn('reveal reveal-left mt-4 min-h-[68px] max-w-[320px]', isVisible && 'reveal-visible')}
+            aria-live="polite"
+          >
+            <div ref={setWidgetContainer} />
+            {!turnstileReady ? <p className="mt-2 text-xs text-white/60">Loading security check...</p> : null}
+          </div>
+        ) : null}
+
         {message ? <p className="mt-4 text-sm text-[var(--accent)]">{message}</p> : null}
         {error ? <p className="mt-4 text-sm text-[#ffb7ad]">{error}</p> : null}
 
         <p className={cn('reveal reveal-right mt-4 text-sm text-white/63', isVisible && 'reveal-visible')}>{copy.privacy}</p>
+
+        <div className={cn('reveal reveal-left mt-5 rounded-lg border border-white/25 bg-white/5 p-4', isVisible && 'reveal-visible')}>
+          <p className="text-xs font-semibold tracking-[0.12em] text-white/75 uppercase">{copy.privacyTitle}</p>
+          <ul className="mt-2 space-y-1.5 text-sm text-white/78">
+            {copy.privacyPoints.map((point) => (
+              <li key={point} className="flex gap-2">
+                <span className="mt-2 inline-block size-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
+                <span>{point}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   )

@@ -209,7 +209,16 @@ export const copy: LandingCopy = {
     button: 'Join',
     success: 'Added. You are now on the list.',
     privacy: 'No spam. One click unsubscribe.',
+    consentLabel: 'I agree to the Privacy notice and email updates about Yokva.',
+    privacyTitle: 'Privacy notice',
+    privacyPoints: [
+      'We store your email only to manage waitlist access and product updates.',
+      'Data is stored in Cloudflare D1 and never sold to third parties.',
+      'To remove your data, contact ceo@yokva.com.',
+    ],
     errorInvalidEmail: 'Enter a valid email address.',
+    errorConsentRequired: 'Please accept the privacy notice before joining.',
+    errorTurnstileRequired: 'Please complete the security check.',
     errorNetwork: 'Could not save right now. Try again.',
   },
   footer: {

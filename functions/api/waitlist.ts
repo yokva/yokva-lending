@@ -1,11 +1,13 @@
 interface Env {
   WAITLIST_DB: D1Database;
+  TURNSTILE_SECRET_KEY?: string;
 }
 
 type JsonRecord = Record<string, unknown>;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RESPONSE_EMAILS = 80;
+const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
 function json(status: number, body: JsonRecord): Response {
   return new Response(JSON.stringify(body), {
@@ -57,6 +59,28 @@ function notConfiguredResponse() {
   });
 }
 
+async function verifyTurnstile(secret: string, token: string, remoteIp: string | null): Promise<boolean> {
+  const payload = new URLSearchParams();
+  payload.set('secret', secret);
+  payload.set('response', token);
+  if (remoteIp) {
+    payload.set('remoteip', remoteIp);
+  }
+
+  const response = await fetch(TURNSTILE_VERIFY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: payload.toString(),
+  });
+
+  if (!response.ok) {
+    return false;
+  }
+
+  const data = (await response.json()) as { success?: boolean };
+  return Boolean(data.success);
+}
+
 export async function onRequestGet(context: EventContext<Env, string, unknown>) {
   const db = context.env.WAITLIST_DB;
   if (!db) {
@@ -82,13 +106,41 @@ export async function onRequestPost(context: EventContext<Env, string, unknown>)
   }
 
   try {
-    const body = (await context.request.json().catch(() => ({}))) as { email?: string };
+    const body = (await context.request.json().catch(() => ({}))) as { email?: string; turnstileToken?: string };
     const email = String(body.email ?? '').trim().toLowerCase();
+    const turnstileToken = String(body.turnstileToken ?? '').trim();
+    const turnstileSecret = String(context.env.TURNSTILE_SECRET_KEY ?? '').trim();
 
     if (!EMAIL_REGEX.test(email)) {
       return json(400, {
         ok: false,
         message: 'Invalid email',
+        data: { count: 0, emails: [] },
+      });
+    }
+
+    if (!turnstileSecret) {
+      return json(500, {
+        ok: false,
+        message: 'Turnstile secret is not configured',
+        data: { count: 0, emails: [] },
+      });
+    }
+
+    if (!turnstileToken) {
+      return json(400, {
+        ok: false,
+        message: 'Security check missing',
+        data: { count: 0, emails: [] },
+      });
+    }
+
+    const remoteIp = context.request.headers.get('CF-Connecting-IP');
+    const isHuman = await verifyTurnstile(turnstileSecret, turnstileToken, remoteIp);
+    if (!isHuman) {
+      return json(400, {
+        ok: false,
+        message: 'Security check failed',
         data: { count: 0, emails: [] },
       });
     }

@@ -122,7 +122,12 @@ export interface WaitlistCopy {
   button: string;
   success: string;
   privacy: string;
+  consentLabel: string;
+  privacyTitle: string;
+  privacyPoints: string[];
   errorInvalidEmail: string;
+  errorConsentRequired: string;
+  errorTurnstileRequired: string;
   errorNetwork: string;
 }
 
