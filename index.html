@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#f7f7f5" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="canonical" href="https://yokva.com/" />
+    <link rel="alternate" href="https://yokva.com/" hreflang="en" />
+    <link rel="alternate" href="https://yokva.com/" hreflang="x-default" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,13 +18,75 @@
     />
     <meta
       name="description"
-      content="Yokva transforms weak apartment photos into platform-ready rental creatives through AI analysis, enhancement, and layout assembly."
+      content="Yokva transforms low-quality apartment photos into marketing-ready listing creatives for Zillow, Apartments.com, Avito, CIAN, and Instagram."
     />
+    <meta
+      name="keywords"
+      content="real estate photo enhancement, apartment listing photos, rental marketing creative, zillow listing images, apartments.com creatives, avito listing design"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://yokva.com/" />
+    <meta property="og:site_name" content="Yokva" />
+    <meta property="og:title" content="Yokva — AI Creative Pipeline for Rental Listings" />
+    <meta
+      property="og:description"
+      content="Upload a weak apartment photo and get platform-ready listing creatives through analysis, enhancement, and layout assembly."
+    />
+    <meta property="og:image" content="https://yokva.com/og-image.svg" />
+    <meta property="og:image:alt" content="Yokva AI pipeline for apartment listing creatives" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Yokva — AI Creative Pipeline for Rental Listings" />
+    <meta
+      name="twitter:description"
+      content="Turn weak apartment photos into ready listing creatives for Zillow, Apartments.com, Avito, CIAN, and Instagram."
+    />
+    <meta name="twitter:image" content="https://yokva.com/og-image.svg" />
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://yokva.com/#organization",
+            "name": "Yokva",
+            "url": "https://yokva.com/",
+            "logo": "https://yokva.com/logo.png",
+            "email": "ceo@yokva.com",
+            "sameAs": ["https://t.me/yokvaapp"]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://yokva.com/#website",
+            "url": "https://yokva.com/",
+            "name": "Yokva",
+            "publisher": { "@id": "https://yokva.com/#organization" },
+            "inLanguage": "en"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://yokva.com/#application",
+            "name": "Yokva",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "url": "https://yokva.com/",
+            "description": "AI pipeline for rental listing creatives: analysis, enhancement, and layout assembly from real apartment photos.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          }
+        ]
+      }
+    </script>
     <title>Yokva — AI Creative Pipeline for Rental Listings</title>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      Yokva is an AI pipeline that analyzes, enhances, and assembles apartment listing creatives for rental platforms.
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

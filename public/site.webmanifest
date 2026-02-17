@@ -1,0 +1,20 @@
+{
+  "name": "Yokva",
+  "short_name": "Yokva",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7f5",
+  "theme_color": "#f7f7f5",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48 32x32 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
