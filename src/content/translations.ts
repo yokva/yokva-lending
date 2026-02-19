@@ -224,8 +224,12 @@ export const copy: LandingCopy = {
   footer: {
     logo: 'Yokva',
     copyright: '2026 Yokva. All rights reserved.',
-    telegramHandle: '@yokvaapp',
-    telegramUrl: 'https://t.me/yokvaapp',
+    telegramHandle: '@yokva_ai',
+    telegramUrl: 'https://t.me/yokva_ai',
+    instagramHandle: '@yokva.ai',
+    instagramUrl: 'https://instagram.com/yokva.ai',
+    facebookHandle: '@yokvaai',
+    facebookUrl: 'https://facebook.com/yokvaai',
     email: 'ceo@yokva.com',
   },
 };

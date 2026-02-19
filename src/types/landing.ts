@@ -136,6 +136,10 @@ export interface FooterCopy {
   copyright: string;
   telegramHandle: string;
   telegramUrl: string;
+  instagramHandle: string;
+  instagramUrl: string;
+  facebookHandle: string;
+  facebookUrl: string;
   email: string;
 }
 
