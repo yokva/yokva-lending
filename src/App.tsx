@@ -25,12 +25,12 @@ function App() {
   }, [])
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg)] text-[var(--text)]">
+    <div className="relative min-h-screen overflow-x-clip bg-[var(--bg)] text-[var(--text)]">
       <div className="grain-layer" aria-hidden="true" />
 
       <Navbar copy={copy.nav} isScrolled={isScrolled} />
 
-      <main>
+      <main className="overflow-x-clip">
         <Hero copy={copy.hero} />
         <InteractiveDemo copy={copy.demo} />
         <ProblemBento copy={copy.stats} />

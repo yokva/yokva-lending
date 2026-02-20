@@ -419,7 +419,7 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
   }
 
   return (
-    <section className="overflow-x-hidden px-4 pb-22 sm:px-6" id="demo">
+    <section className="overflow-x-clip px-4 pb-22 sm:px-6" id="demo">
       <div className="mx-auto w-full max-w-[1280px] min-w-0">
         <p className="text-[11px] font-semibold tracking-[0.16em] text-[var(--muted)] uppercase">{copy.subtitle}</p>
         <h2 className="mt-2 max-w-4xl font-headline text-[clamp(1.9rem,4.2vw,3rem)] leading-[0.95] font-bold tracking-[-0.025em] text-[var(--text)]">

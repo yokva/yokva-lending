@@ -15,6 +15,7 @@ function getInitial(email: string) {
 
 export function WaitlistCTA({ copy }: WaitlistProps) {
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() || ''
+  const turnstileEnabled = Boolean(turnstileSiteKey) && (import.meta.env.PROD || import.meta.env.VITE_TURNSTILE_IN_DEV === 'true')
   const [email, setEmail] = useState('')
   const [savedEmails, setSavedEmails] = useState<string[]>([])
   const [agreed, setAgreed] = useState(false)
@@ -22,6 +23,7 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [turnstileApiReady, setTurnstileApiReady] = useState(!turnstileEnabled)
   const [turnstileReady, setTurnstileReady] = useState(false)
   const { ref, isVisible } = useReveal<HTMLElement>(0.2)
   const [widgetContainer, setWidgetContainer] = useState<HTMLDivElement | null>(null)
@@ -56,7 +58,60 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
   }, [visibleEmails])
 
   useEffect(() => {
-    if (!turnstileSiteKey || !widgetContainer || typeof window === 'undefined') {
+    if (!turnstileEnabled || typeof window === 'undefined') {
+      setTurnstileApiReady(false)
+      setTurnstileReady(false)
+      setTurnstileToken('')
+      return
+    }
+
+    if (window.turnstile) {
+      setTurnstileApiReady(true)
+      return
+    }
+
+    let disposed = false
+    let script = document.querySelector<HTMLScriptElement>('script[data-turnstile-script="true"]')
+    const markReady = () => {
+      if (!disposed) {
+        setTurnstileApiReady(true)
+      }
+    }
+
+    const markFailed = () => {
+      if (!disposed) {
+        setTurnstileApiReady(false)
+      }
+    }
+
+    if (!script) {
+      script = document.createElement('script')
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      script.async = true
+      script.defer = true
+      script.dataset.turnstileScript = 'true'
+      script.addEventListener('load', markReady)
+      script.addEventListener('error', markFailed)
+      document.head.appendChild(script)
+    } else {
+      script.addEventListener('load', markReady)
+      script.addEventListener('error', markFailed)
+    }
+
+    return () => {
+      disposed = true
+      script?.removeEventListener('load', markReady)
+      script?.removeEventListener('error', markFailed)
+    }
+  }, [turnstileEnabled])
+
+  useEffect(() => {
+    if (!turnstileEnabled || !turnstileApiReady || !widgetContainer || typeof window === 'undefined') {
+      setTurnstileReady(false)
+      setTurnstileToken('')
+      if (widgetContainer) {
+        widgetContainer.dataset.rendered = 'false'
+      }
       return
     }
 
@@ -104,7 +159,7 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
         window.clearTimeout(timerId)
       }
     }
-  }, [turnstileSiteKey, widgetContainer])
+  }, [turnstileEnabled, turnstileApiReady, turnstileSiteKey, widgetContainer])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -122,7 +177,7 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
       return
     }
 
-    if (turnstileSiteKey && !turnstileToken) {
+    if (turnstileEnabled && !turnstileToken) {
       setError(copy.errorTurnstileRequired)
       setMessage(null)
       return
@@ -139,7 +194,7 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
       setMessage(copy.success)
       setTurnstileToken('')
 
-      if (turnstileSiteKey && widgetContainer && window.turnstile) {
+      if (turnstileEnabled && widgetContainer && window.turnstile) {
         window.turnstile.reset(widgetContainer)
       }
     } catch {
@@ -224,13 +279,13 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
           <span>{copy.consentLabel}</span>
         </label>
 
-        {turnstileSiteKey ? (
+        {turnstileEnabled ? (
           <div
             className={cn('reveal reveal-left mt-4 min-h-[68px] max-w-[320px]', isVisible && 'reveal-visible')}
             aria-live="polite"
           >
             <div ref={setWidgetContainer} />
-            {!turnstileReady ? <p className="mt-2 text-xs text-white/60">Loading security check...</p> : null}
+            {!turnstileApiReady || !turnstileReady ? <p className="mt-2 text-xs text-white/60">Loading security check...</p> : null}
           </div>
         ) : null}
 
