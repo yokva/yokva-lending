@@ -49,3 +49,29 @@ In Cloudflare Pages, configure:
 - D1 binding named `WAITLIST_DB`
 - Environment variable `TURNSTILE_SECRET_KEY` (Turnstile secret key)
 - Frontend variable `VITE_TURNSTILE_SITE_KEY` (Turnstile site key)
+- Secret `RESEND_API_KEY` (Resend API key for outgoing emails)
+- Optional env `RESEND_FROM` (default: `Roman from Yokva <ceo@yokva.com>`)
+- Optional env `RESEND_REPLY_TO` (default: `ceo@yokva.com`)
+
+### Resend setup (email after waitlist submit)
+
+1. In Resend:
+- Verify your sending domain (you already connected it).
+- Create an API key with sending permissions.
+- Keep the key private.
+
+2. In Cloudflare Pages project:
+- Go to `Settings -> Variables and secrets`.
+- Add `RESEND_API_KEY` as a **Secret** (Production and Preview if needed).
+- Optionally add `RESEND_FROM` and `RESEND_REPLY_TO`.
+- Save and trigger a redeploy.
+
+3. Runtime behavior:
+- New email submit -> email is inserted into D1 (`waitlist_emails`).
+- If inserted successfully, Pages Function calls Resend API.
+- If Resend fails, submit still succeeds (email stays saved in D1), and error is logged.
+
+### Important local note
+
+`npm run dev` uses `vite.config.ts` local middleware (`data/waitlist-emails.txt`) and does not send Resend emails.  
+Resend sending is active in Cloudflare Pages Function (`functions/api/waitlist.ts`) in production.
