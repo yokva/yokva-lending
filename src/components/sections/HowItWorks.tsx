@@ -37,7 +37,7 @@ export function HowItWorks({ copy }: HowItWorksProps) {
                   </div>
 
                   <div className="mt-5 flex size-14 items-center justify-center rounded-lg border-2 border-[var(--text)] bg-[var(--bg)]">
-                    <Icon size={24} strokeWidth={2.1} />
+                    <Icon size={24} strokeWidth={3} />
                   </div>
 
                   <h3 className="mt-6 font-headline text-2xl leading-[1.05] font-bold tracking-[-0.02em] text-[var(--text)]">

@@ -70,8 +70,8 @@ export function Pricing({ copy }: PricingProps) {
                   ))}
                 </ul>
 
-                <button
-                  type="button"
+                <a
+                  href="#waitlist"
                   className={cn(
                     'focus-ring mt-7 inline-flex rounded-full border-2 border-[var(--text)] px-5 py-3 text-sm font-semibold transition-colors',
                     plan.popular
@@ -82,7 +82,7 @@ export function Pricing({ copy }: PricingProps) {
                   )}
                 >
                   {plan.cta}
-                </button>
+                </a>
               </article>
             )
           })}

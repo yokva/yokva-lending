@@ -6,7 +6,6 @@ import { cn } from '../../lib/cn'
 import { type DemoPhase, type DemoPreset, type InteractiveDemoProps } from '../../types/landing'
 
 const ENHANCED_PHASES: DemoPhase[] = ['enhance', 'assemble', 'done']
-const ASSEMBLED_PHASES: DemoPhase[] = ['assemble', 'done']
 
 const PRESET_STYLE_CLASSES: Record<DemoPreset['style'], string> = {
   listing: 'bg-white text-[var(--text)]',
@@ -183,7 +182,7 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
 
   const isRunning = phase !== 'idle' && phase !== 'done'
   const isEnhanced = ENHANCED_PHASES.includes(phase)
-  const isAssembled = ASSEMBLED_PHASES.includes(phase)
+  const showCreativeOverlay = phase === 'assemble' || phase === 'done'
 
   const outputPack = useMemo(
     () =>
@@ -207,211 +206,215 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
     }
   }, [copy.statusAssemble, copy.statusDone, copy.statusEnhance, copy.statusScan, phase])
 
-  const progress = {
-    analysis: phase !== 'idle',
-    enhancement: ['enhance', 'assemble', 'done'].includes(phase),
-    assembly: ['assemble', 'done'].includes(phase),
-  }
+  const progressState = useMemo(() => {
+    switch (phase) {
+      case 'scan':
+        return {
+          analysis: { value: 46, label: '46%', pulse: true },
+          enhancement: { value: 0, label: 'Waiting', pulse: false },
+          assembly: { value: 0, label: 'Waiting', pulse: false },
+        }
+      case 'enhance':
+        return {
+          analysis: { value: 100, label: 'Done', pulse: false },
+          enhancement: { value: 64, label: '64%', pulse: true },
+          assembly: { value: 0, label: 'Waiting', pulse: false },
+        }
+      case 'assemble':
+        return {
+          analysis: { value: 100, label: 'Done', pulse: false },
+          enhancement: { value: 100, label: 'Done', pulse: false },
+          assembly: { value: 72, label: '72%', pulse: true },
+        }
+      case 'done':
+        return {
+          analysis: { value: 100, label: 'Done', pulse: false },
+          enhancement: { value: 100, label: 'Done', pulse: false },
+          assembly: { value: 100, label: 'Done', pulse: false },
+        }
+      default:
+        return {
+          analysis: { value: 0, label: 'Idle', pulse: false },
+          enhancement: { value: 0, label: 'Idle', pulse: false },
+          assembly: { value: 0, label: 'Idle', pulse: false },
+        }
+    }
+  }, [phase])
+
+  const contextStatus = useMemo(() => {
+    switch (phase) {
+      case 'scan':
+        return 'Parsing context...'
+      case 'enhance':
+        return 'Mapping visual intent...'
+      case 'assemble':
+        return 'Applying layout...'
+      case 'done':
+        return 'Context locked'
+      default:
+        return 'Awaiting input'
+    }
+  }, [phase])
 
   const buttonLabel = isRunning ? copy.buttonBusy : phase === 'done' ? copy.buttonReplay : copy.buttonStart
   const contextDisplay = phase === 'idle' ? copy.contextPlaceholder : contextDraft || copy.contextPlaceholder
 
   const overlayByStyle = () => {
-    if (!isAssembled) {
+    if (!showCreativeOverlay) {
       return null
     }
 
+    const topLeftTag = (
+      <div className="hud-enter absolute top-4 left-4 rounded-sm border-2 border-black bg-[#BEFF00] px-3 py-1 text-[10px] font-extrabold tracking-[0.12em] text-black uppercase">
+        {activePreset.style === 'story' ? 'STORY BOOST' : activePreset.style === 'highlight' ? 'TOP PICK' : 'JUST LISTED'}
+      </div>
+    )
+
     if (isCompact) {
-      const compactCardClass =
-        activePreset.style === 'highlight'
-          ? 'bg-[color:rgb(17_17_17_/_0.9)] text-white border-white/70'
-          : activePreset.style === 'story'
-            ? 'bg-[color:rgb(190_255_0_/_0.85)] text-[var(--text)] border-[var(--text)]'
-            : 'bg-[color:rgb(255_255_255_/_0.92)] text-[var(--text)] border-[var(--text)]'
-
       return (
-        <>
-          <div className="hud-enter absolute top-3 left-3 rounded-full border border-[var(--text)] bg-[var(--text)] px-2.5 py-1 text-[10px] font-semibold text-white">
-            {activePreset.platform}
+        <div className="pointer-events-none absolute inset-0 z-10">
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
+          {topLeftTag}
+          <div className="hud-enter absolute top-4 right-4 rounded-full border-2 border-[var(--text)] bg-white px-3 py-1 text-xs font-bold text-[var(--text)]" style={{ animationDelay: '90ms' }}>
+            {activePreset.price}
           </div>
+          <div className="hud-enter absolute right-3 bottom-3 left-3 rounded-md border-2 border-[var(--text)] bg-[color:rgb(255_255_255_/_0.95)] p-2.5 text-[var(--text)]" style={{ animationDelay: '170ms' }}>
+            <p className="text-[10px] font-semibold tracking-[0.12em] uppercase">{activePreset.platform}</p>
+            <p className="mt-1 font-headline text-sm leading-tight font-bold tracking-[-0.02em]">{activePreset.headline}</p>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--text)] px-2 py-0.5 text-[9px] font-semibold">
+                <Check size={10} />
+                {copy.badgeVerified}
+              </span>
+              <span className="rounded-full border border-[var(--text)] bg-[var(--accent)] px-2 py-0.5 text-[9px] font-bold">{activePreset.cta}</span>
+            </div>
+          </div>
+        </div>
+      )
+    }
 
-          <div
-            className="hud-enter absolute top-3 right-3 rounded-full border border-[var(--text)] bg-white px-2.5 py-1 text-[10px] font-bold text-[var(--text)]"
-            style={{ animationDelay: '80ms' }}
-          >
+    if (activePreset.style === 'listing') {
+      return (
+        <div className="pointer-events-none absolute inset-0 z-10">
+          <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/85 to-transparent" />
+          {topLeftTag}
+          <div className="hud-enter absolute top-4 right-4 rounded-full border-2 border-[var(--text)] bg-white px-3 py-1 text-sm font-bold text-[var(--text)]" style={{ animationDelay: '80ms' }}>
             {activePreset.price}
           </div>
 
-          <div
-            className={cn(
-              'hud-enter absolute right-3 bottom-3 left-3 rounded-lg border p-2.5',
-              compactCardClass,
-            )}
-            style={{ animationDelay: '160ms' }}
-          >
-            <p className="text-[10px] font-semibold tracking-[0.08em] uppercase">{activePreset.format}</p>
-            <p className="mt-1 text-xs font-bold leading-tight">{activePreset.headline}</p>
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {activePreset.chips.slice(0, 2).map((chip) => (
-                <span
-                  key={`${activePreset.name}-${chip}`}
-                  className="rounded-full border border-current px-1.5 py-0.5 text-[9px] font-medium"
-                >
+          <div className="hud-enter absolute right-4 bottom-4 left-4 rounded-lg border-2 border-[var(--text)] bg-[color:rgb(255_255_255_/_0.95)] p-3.5" style={{ animationDelay: '160ms' }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--muted)] uppercase">{activePreset.platform}</p>
+                <p className="font-headline mt-1 text-[1.28rem] leading-[1.02] font-bold tracking-[-0.02em] text-[var(--text)]">{activePreset.headline}</p>
+              </div>
+              <span className="rounded-full border border-[var(--text)] bg-[var(--accent)] px-3 py-1 text-[11px] font-bold text-[var(--text)]">{activePreset.cta}</span>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {activePreset.chips.slice(0, 3).map((chip) => (
+                <span key={`${activePreset.name}-${chip}`} className="rounded-full border border-[var(--text)] bg-white px-2.5 py-0.5 text-[10px] font-medium text-[var(--text)]">
                   {chip}
                 </span>
               ))}
             </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="inline-flex items-center gap-1 rounded-full border border-current px-2 py-0.5 text-[9px] font-semibold">
-                <Check size={9} />
-                {copy.badgeVerified}
-              </span>
-              <span className="rounded-full border border-current bg-[var(--accent)] px-2 py-0.5 text-[9px] font-bold text-[var(--text)]">
-                {activePreset.cta}
-              </span>
-            </div>
           </div>
-        </>
+        </div>
       )
     }
 
     if (activePreset.style === 'story') {
       return (
-        <>
-          <div className="hud-enter absolute top-4 left-4 rounded-full border border-[var(--text)] bg-[var(--accent)] px-3 py-1 text-[11px] font-semibold text-[var(--text)]">
-            STORY FORMAT
+        <div className="pointer-events-none absolute inset-0 z-10">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          {topLeftTag}
+          <div className="hud-enter absolute top-4 right-4 rounded-full border border-white/80 bg-black/70 px-3 py-1 text-sm font-bold text-white" style={{ animationDelay: '80ms' }}>
+            {activePreset.price}
           </div>
 
-          <div className="hud-enter absolute top-14 right-4 bottom-14 w-[36%] rounded-2xl border-2 border-[var(--text)] bg-[color:rgb(255_255_255_/_0.9)] p-3" style={{ animationDelay: '90ms' }}>
-            <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--muted)] uppercase">{activePreset.platform}</p>
-            <p className="mt-2 font-headline text-[1.2rem] leading-[1.02] font-bold tracking-[-0.02em]">{activePreset.headline}</p>
+          <div className="hud-enter absolute top-14 right-4 bottom-4 w-[38%] rounded-xl border-2 border-white/90 bg-[color:rgb(17_17_17_/_0.78)] p-3 text-white" style={{ animationDelay: '160ms' }}>
+            <p className="text-[10px] font-semibold tracking-[0.12em] text-white/75 uppercase">{activePreset.platform}</p>
+            <p className="font-headline mt-2 text-[1.12rem] leading-[1.02] font-bold tracking-[-0.02em]">{activePreset.headline}</p>
             <div className="mt-3 space-y-1">
-              {activePreset.chips.map((chip) => (
-                <span key={`${activePreset.name}-${chip}`} className="block rounded-full border border-[var(--text)] bg-white px-2 py-1 text-[10px] font-semibold">
+              {activePreset.chips.slice(0, 3).map((chip) => (
+                <span key={`${activePreset.name}-${chip}`} className="block rounded-full border border-white/75 bg-white/10 px-2 py-0.5 text-[10px]">
                   {chip}
                 </span>
               ))}
             </div>
-            <div className="mt-3 flex items-center justify-between rounded-full border border-[var(--text)] bg-[var(--accent)] px-2 py-1 text-[11px] font-bold">
-              <span>{activePreset.price}</span>
-              <span>{activePreset.cta}</span>
-            </div>
+            <span className="mt-3 inline-flex rounded-full border border-white bg-white px-2.5 py-1 text-[10px] font-bold text-[var(--text)]">{activePreset.cta}</span>
           </div>
 
-          <div className="hud-enter absolute right-4 bottom-4 rounded-full border border-[var(--text)] bg-[var(--text)] px-3 py-1 text-[11px] font-semibold text-white" style={{ animationDelay: '190ms' }}>
-            Swipe-ready creative
+          <div className="hud-enter absolute right-[42%] bottom-4 left-4 rounded-md border border-[var(--text)] bg-[color:rgb(255_255_255_/_0.9)] px-3 py-2 text-[11px] font-semibold text-[var(--text)]" style={{ animationDelay: '220ms' }}>
+            Vertical story template with urgency strip
           </div>
-        </>
+        </div>
       )
     }
 
     if (activePreset.style === 'highlight') {
       return (
-        <>
-          <div className="hud-enter absolute top-4 left-4 rounded-full border border-[var(--text)] bg-[var(--text)] px-3 py-1 text-[11px] font-semibold text-white">
-            {copy.platformLabel} {activePreset.platform}
-          </div>
-          <div className="hud-enter absolute top-4 right-4 rounded-full border border-[var(--text)] bg-[var(--accent)] px-3 py-1 text-[11px] font-bold text-[var(--text)]" style={{ animationDelay: '70ms' }}>
-            MARKETPLACE
-          </div>
-
-          <div className="hud-enter absolute top-[4.2rem] left-4 rounded-full border-2 border-[var(--text)] bg-white px-3 py-1 text-base font-bold text-[var(--text)]" style={{ animationDelay: '130ms' }}>
+        <div className="pointer-events-none absolute inset-0 z-10">
+          <div className="absolute inset-0 bg-gradient-to-tr from-black/85 via-transparent to-black/10" />
+          {topLeftTag}
+          <div className="hud-enter absolute top-4 right-4 rounded-full border-2 border-[var(--text)] bg-[var(--accent)] px-3 py-1 text-sm font-bold text-[var(--text)]" style={{ animationDelay: '80ms' }}>
             {activePreset.price}
           </div>
 
-          <div className="hud-enter absolute right-4 top-1/2 -translate-y-1/2 rounded-lg border border-[var(--text)] bg-[var(--accent)] px-2 py-3 text-[10px] font-bold tracking-[0.08em] text-[var(--text)] uppercase [writing-mode:vertical-rl]" style={{ animationDelay: '180ms' }}>
-            fast lead capture
-          </div>
-
-          <div className="hud-enter absolute right-4 bottom-4 left-4 rounded-xl border-2 border-[var(--text)] bg-[color:rgb(17_17_17_/_0.9)] p-3 text-white" style={{ animationDelay: '240ms' }}>
-            <p className="text-[11px] font-bold tracking-[0.08em] uppercase">{activePreset.headline}</p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {activePreset.chips.map((chip) => (
-                <span key={`${activePreset.name}-${chip}`} className="rounded-full border border-white/70 bg-white/10 px-2 py-0.5 text-[10px]">
-                  {chip}
-                </span>
-              ))}
-            </div>
-          </div>
-        </>
-      )
-    }
-
-    if (activePreset.style === 'minimal') {
-      return (
-        <>
-          <div className="hud-enter absolute top-4 left-4 rounded-full border border-[var(--text)] bg-white px-3 py-1 text-[11px] font-semibold text-[var(--text)]">
-            {copy.platformLabel} {activePreset.platform}
-          </div>
-
-          <div className="hud-enter absolute inset-x-[14%] top-[15%] rounded-2xl border-2 border-[var(--text)] bg-[color:rgb(255_255_255_/_0.92)] p-4" style={{ animationDelay: '110ms' }}>
-            <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--muted)] uppercase">{activePreset.format}</p>
-            <p className="mt-2 font-headline text-[1.35rem] leading-[1.04] font-bold tracking-[-0.02em] text-[var(--text)]">{activePreset.headline}</p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {activePreset.chips.map((chip) => (
-                <span key={`${activePreset.name}-${chip}`} className="rounded-full border border-[var(--text)] px-2 py-0.5 text-[10px] font-medium text-[var(--text)]">
+          <div className="hud-enter absolute top-16 bottom-4 left-4 w-[30%] rounded-lg border-2 border-white/80 bg-[color:rgb(17_17_17_/_0.86)] p-3 text-white" style={{ animationDelay: '150ms' }}>
+            <p className="text-[10px] font-semibold tracking-[0.1em] text-white/75 uppercase">{activePreset.platform}</p>
+            <p className="font-headline mt-2 text-[1.22rem] leading-[1.03] font-bold tracking-[-0.02em]">{activePreset.headline}</p>
+            <div className="mt-3 space-y-1">
+              {activePreset.chips.slice(0, 3).map((chip) => (
+                <span key={`${activePreset.name}-${chip}`} className="block rounded-full border border-white/70 bg-white/10 px-2 py-0.5 text-[10px]">
                   {chip}
                 </span>
               ))}
             </div>
           </div>
 
-          <div className="hud-enter absolute right-4 top-16 rounded-full border border-[var(--text)] bg-[var(--accent)] px-3 py-1 text-[11px] font-bold text-[var(--text)]" style={{ animationDelay: '180ms' }}>
-            {activePreset.cta}
+          <div className="hud-enter absolute right-4 bottom-4 left-[35%] rounded-lg border-2 border-[var(--text)] bg-[color:rgb(255_255_255_/_0.95)] p-3" style={{ animationDelay: '220ms' }}>
+            <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--muted)] uppercase">Marketplace push</p>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--text)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text)]">
+                <Check size={10} />
+                {copy.badgeVerified}
+              </span>
+              <span className="rounded-full border border-[var(--text)] bg-[var(--accent)] px-3 py-1 text-[11px] font-bold text-[var(--text)]">{activePreset.cta}</span>
+            </div>
           </div>
-
-          <div className="hud-enter absolute left-4 bottom-4 rounded-full border border-[var(--text)] bg-white px-3 py-1 text-[11px] font-semibold text-[var(--text)]" style={{ animationDelay: '220ms' }}>
-            <Check size={12} className="mr-1 inline-block" /> {copy.badgeVerified}
-          </div>
-
-          <div className="hud-enter absolute right-4 bottom-4 rounded-full border border-[var(--text)] bg-[var(--text)] px-3 py-1 text-[11px] font-bold text-white" style={{ animationDelay: '260ms' }}>
-            {activePreset.price}
-          </div>
-        </>
+        </div>
       )
     }
 
     return (
-      <>
-        <div className="hud-enter absolute top-4 left-4 rounded-full border border-[var(--text)] bg-[var(--text)] px-3 py-1 text-[11px] font-semibold text-white">
-          {copy.platformLabel} {activePreset.platform}
-        </div>
-        <div className="hud-enter absolute top-4 right-4 rounded-full border border-[var(--text)] bg-[var(--accent)] px-3 py-1 text-[11px] font-bold text-[var(--text)]" style={{ animationDelay: '90ms' }}>
-          {copy.badgeFeatured}
-        </div>
-
-        <div className="hud-enter absolute top-12 left-1/2 -translate-x-1/2 rounded-full border border-[var(--text)] bg-white px-3 py-1 text-[10px] font-semibold tracking-[0.08em] text-[var(--text)] uppercase" style={{ animationDelay: '130ms' }}>
-          {activePreset.format}
-        </div>
-
-        <div className="hud-enter absolute top-14 right-4 rounded-full border border-[var(--text)] bg-white px-3 py-1 text-sm font-bold text-[var(--text)]" style={{ animationDelay: '170ms' }}>
+      <div className="pointer-events-none absolute inset-0 z-10">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+        {topLeftTag}
+        <div className="hud-enter absolute top-4 right-4 rounded-full border-2 border-[var(--text)] bg-white px-3 py-1 text-sm font-bold text-[var(--text)]" style={{ animationDelay: '80ms' }}>
           {activePreset.price}
         </div>
 
-        <div className="hud-enter absolute left-4 bottom-[5.6rem] max-w-[62%] rounded-lg border border-[var(--text)] bg-[color:rgb(255_255_255_/_0.93)] px-3 py-2" style={{ animationDelay: '220ms' }}>
-          <p className="text-[11px] font-bold tracking-[0.08em] uppercase">{activePreset.headline}</p>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {activePreset.chips.map((chip) => (
-              <span key={`${activePreset.name}-${chip}`} className="rounded-full border border-[var(--text)] bg-white px-2 py-0.5 text-[10px] font-medium">
+        <div className="hud-enter absolute inset-x-[14%] top-[18%] rounded-2xl border-2 border-[var(--text)] bg-[color:rgb(255_255_255_/_0.94)] p-4" style={{ animationDelay: '150ms' }}>
+          <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--muted)] uppercase">{activePreset.format}</p>
+          <p className="font-headline mt-2 text-[1.36rem] leading-[1.03] font-bold tracking-[-0.02em] text-[var(--text)]">{activePreset.headline}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {activePreset.chips.slice(0, 3).map((chip) => (
+              <span key={`${activePreset.name}-${chip}`} className="rounded-full border border-[var(--text)] bg-white px-2.5 py-0.5 text-[10px] font-medium text-[var(--text)]">
                 {chip}
               </span>
             ))}
           </div>
         </div>
 
-        <button type="button" className="hud-enter absolute right-4 bottom-[5.6rem] rounded-full border border-[var(--text)] bg-[var(--accent)] px-3 py-1 text-[11px] font-semibold text-[var(--text)]" style={{ animationDelay: '260ms' }}>
-          {activePreset.cta}
-        </button>
-
-        <div className="hud-enter absolute bottom-4 left-4 flex items-center gap-1 rounded-full border border-[var(--text)] bg-white px-3 py-1 text-[11px] font-semibold text-[var(--text)]" style={{ animationDelay: '320ms' }}>
-          <Check size={12} />
-          {copy.badgeVerified}
+        <div className="hud-enter absolute right-4 bottom-4 left-4 flex items-center justify-between rounded-full border border-[var(--text)] bg-[color:rgb(247_247_245_/_0.96)] px-3 py-1.5 text-[11px] font-semibold text-[var(--text)]" style={{ animationDelay: '220ms' }}>
+          <span className="inline-flex items-center gap-1">
+            <Check size={11} />
+            {copy.badgeVerified}
+          </span>
+          <span className="rounded-full border border-[var(--text)] bg-[var(--text)] px-3 py-1 text-[10px] font-bold text-white">{activePreset.cta}</span>
         </div>
-
-        <div className="hud-enter absolute inset-x-4 bottom-4 ml-[8.8rem] rounded-full border border-[var(--text)] bg-[color:rgb(247_247_245_/_0.94)] px-3 py-1 text-center text-[11px] font-semibold text-[var(--text)]" style={{ animationDelay: '360ms' }}>
-          {copy.frameLabel} • {copy.creativeText}
-        </div>
-      </>
+      </div>
     )
   }
 
@@ -527,20 +530,20 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
                   <div className="mt-4 grid grid-cols-3 gap-2 border-t border-[var(--text)] pt-4 text-[10px]">
                     <div className="rounded-md border border-[var(--text)] bg-[var(--bg)] px-2 py-2 text-center">
                       <p className="font-semibold uppercase">{copy.steps.analysis}</p>
-                      <p className={cn('mt-1 font-bold', progress.analysis ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
-                        {progress.analysis ? '100%' : '0%'}
+                      <p className={cn('mt-1 font-bold', progressState.analysis.value > 0 ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
+                        {progressState.analysis.value}%
                       </p>
                     </div>
                     <div className="rounded-md border border-[var(--text)] bg-[var(--bg)] px-2 py-2 text-center">
                       <p className="font-semibold uppercase">{copy.steps.enhancement}</p>
-                      <p className={cn('mt-1 font-bold', progress.enhancement ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
-                        {progress.enhancement ? '100%' : '0%'}
+                      <p className={cn('mt-1 font-bold', progressState.enhancement.value > 0 ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
+                        {progressState.enhancement.value}%
                       </p>
                     </div>
                     <div className="rounded-md border border-[var(--text)] bg-[var(--bg)] px-2 py-2 text-center">
                       <p className="font-semibold uppercase">{copy.steps.layoutAssembly}</p>
-                      <p className={cn('mt-1 font-bold', progress.assembly ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
-                        {progress.assembly ? '100%' : '0%'}
+                      <p className={cn('mt-1 font-bold', progressState.assembly.value > 0 ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
+                        {progressState.assembly.value}%
                       </p>
                     </div>
                   </div>
@@ -549,10 +552,20 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
 
               {isCompact ? (
                 <div className="mt-4 rounded-md border border-[var(--text)] bg-white p-3">
-                  <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">{copy.contextLabel}</p>
-                  <div className="mt-2 min-h-16 rounded-md border border-[var(--text)] bg-[var(--bg)] px-2 py-2 font-mono text-[10px] leading-relaxed text-[var(--text)]">
-                    {contextDisplay}
-                    {phase === 'scan' ? <span className="ml-0.5 inline-block h-[1em] w-[1px] animate-pulse bg-[var(--text)] align-middle" /> : null}
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">{copy.contextLabel}</p>
+                    <span className="rounded-full border border-[var(--text)] bg-[var(--bg)] px-2 py-0.5 text-[9px] font-semibold tracking-[0.08em] uppercase text-[var(--muted)]">
+                      {contextStatus}
+                    </span>
+                  </div>
+                  <div className="mt-2 min-h-16 rounded-md border border-[var(--text)] bg-[var(--bg)] px-2 py-2">
+                    <p className={cn('font-mono text-[10px] leading-relaxed', phase === 'idle' ? 'text-[var(--muted)]' : 'text-[var(--text)]')}>
+                      <span className="text-[var(--muted)]">&gt; </span>
+                      {contextDisplay}
+                      {phase === 'scan' || phase === 'enhance' ? (
+                        <span className="ml-0.5 inline-block h-[1em] w-[1px] animate-pulse bg-[var(--text)] align-middle" />
+                      ) : null}
+                    </p>
                   </div>
                 </div>
               ) : null}
@@ -604,7 +617,7 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
                             className={cn(
                               'h-[104px] min-w-[156px] rounded-md border border-[var(--text)] p-2 transition-all duration-500 sm:h-[112px] sm:min-w-0',
                               PRESET_STYLE_CLASSES[preset.style],
-                              isAssembled ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-40',
+                              'translate-y-0 opacity-100',
                             )}
                             style={{ transitionDelay: `${index * 120}ms` }}
                           >
@@ -648,10 +661,32 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
               </p>
 
               <div className="mt-4 rounded-md border border-[var(--text)] bg-white p-3 sm:mt-5">
-                <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">{copy.contextLabel}</p>
-                <div className="mt-2 min-h-20 rounded-md border border-[var(--text)] bg-[var(--bg)] px-2 py-2 font-mono text-[11px] leading-relaxed text-[var(--text)]">
-                  {contextDisplay}
-                  {phase === 'scan' ? <span className="ml-0.5 inline-block h-[1em] w-[1px] animate-pulse bg-[var(--text)] align-middle" /> : null}
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">{copy.contextLabel}</p>
+                  <span className="rounded-full border border-[var(--text)] bg-[var(--bg)] px-2 py-0.5 text-[9px] font-semibold tracking-[0.08em] uppercase text-[var(--muted)]">
+                    {contextStatus}
+                  </span>
+                </div>
+                <div className="mt-2 min-h-20 rounded-md border border-[var(--text)] bg-[var(--bg)] px-2 py-2">
+                  <p className={cn('font-mono text-[11px] leading-relaxed', phase === 'idle' ? 'text-[var(--muted)]' : 'text-[var(--text)]')}>
+                    <span className="text-[var(--muted)]">&gt; </span>
+                    {contextDisplay}
+                    {phase === 'scan' || phase === 'enhance' ? (
+                      <span className="ml-0.5 inline-block h-[1em] w-[1px] animate-pulse bg-[var(--text)] align-middle" />
+                    ) : null}
+                  </p>
+                  {phase !== 'idle' ? (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {activePreset.chips.slice(0, 3).map((chip) => (
+                        <span
+                          key={`ctx-${activePreset.name}-${chip}`}
+                          className="rounded-full border border-[var(--text)] bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--text)]"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -659,36 +694,54 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
                 <div>
                   <div className="mb-2 flex items-center justify-between text-sm font-medium">
                     <span>{copy.steps.analysis}</span>
-                    <span className={cn(progress.analysis ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
-                      {progress.analysis ? '100%' : '0%'}
+                    <span className={cn(progressState.analysis.value > 0 ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
+                      {progressState.analysis.label}
                     </span>
                   </div>
                   <div className="h-2 w-full rounded-full border border-[var(--text)] bg-white">
-                    <div className={cn('h-full rounded-full bg-[var(--accent)] transition-all duration-500', progress.analysis ? 'w-full' : 'w-0')} />
+                    <div
+                      className={cn(
+                        'h-full rounded-full bg-[var(--accent)] transition-all duration-700',
+                        progressState.analysis.pulse && 'animate-pulse',
+                      )}
+                      style={{ width: `${progressState.analysis.value}%` }}
+                    />
                   </div>
                 </div>
 
                 <div>
                   <div className="mb-2 flex items-center justify-between text-sm font-medium">
                     <span>{copy.steps.enhancement}</span>
-                    <span className={cn(progress.enhancement ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
-                      {progress.enhancement ? '100%' : '0%'}
+                    <span className={cn(progressState.enhancement.value > 0 ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
+                      {progressState.enhancement.label}
                     </span>
                   </div>
                   <div className="h-2 w-full rounded-full border border-[var(--text)] bg-white">
-                    <div className={cn('h-full rounded-full bg-[var(--accent)] transition-all duration-500', progress.enhancement ? 'w-full' : 'w-0')} />
+                    <div
+                      className={cn(
+                        'h-full rounded-full bg-[var(--accent)] transition-all duration-700',
+                        progressState.enhancement.pulse && 'animate-pulse',
+                      )}
+                      style={{ width: `${progressState.enhancement.value}%` }}
+                    />
                   </div>
                 </div>
 
                 <div>
                   <div className="mb-2 flex items-center justify-between text-sm font-medium">
                     <span>{copy.steps.layoutAssembly}</span>
-                    <span className={cn(progress.assembly ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
-                      {progress.assembly ? '100%' : '0%'}
+                    <span className={cn(progressState.assembly.value > 0 ? 'text-[var(--text)]' : 'text-[var(--muted)]')}>
+                      {progressState.assembly.label}
                     </span>
                   </div>
                   <div className="h-2 w-full rounded-full border border-[var(--text)] bg-white">
-                    <div className={cn('h-full rounded-full bg-[var(--accent)] transition-all duration-500', progress.assembly ? 'w-full' : 'w-0')} />
+                    <div
+                      className={cn(
+                        'h-full rounded-full bg-[var(--accent)] transition-all duration-700',
+                        progressState.assembly.pulse && 'animate-pulse',
+                      )}
+                      style={{ width: `${progressState.assembly.value}%` }}
+                    />
                   </div>
                 </div>
               </div>
