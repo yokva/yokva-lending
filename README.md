@@ -35,8 +35,16 @@ npm run preview
 Set frontend variables in Cloudflare Pages (`Settings -> Variables and secrets`):
 
 - `VITE_PUBLIC_POSTHOG_KEY`
-- `VITE_PUBLIC_POSTHOG_HOST` (`https://us.i.posthog.com` or `https://eu.i.posthog.com`)
+- `VITE_PUBLIC_POSTHOG_HOST` (`/ph` when reverse proxy is enabled)
 - Optional: `VITE_PUBLIC_POSTHOG_UI_HOST`
+
+Set backend/runtime variable for Pages Function proxy:
+
+- `POSTHOG_PROXY_HOST` (`https://us.i.posthog.com` or `https://eu.i.posthog.com`)
+
+Reverse proxy endpoint in this repo:
+
+- `functions/ph/[[path]].ts` -> proxies `/ph/*` to PostHog ingest host
 
 Events tracked in code:
 

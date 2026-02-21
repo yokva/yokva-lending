@@ -8,6 +8,7 @@ import { defineConfig, type Plugin } from 'vite'
 const WAITLIST_FILE = resolve(process.cwd(), 'data/waitlist-emails.txt')
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_RESPONSE_EMAILS = 80
+const POSTHOG_PROXY_TARGET = process.env.POSTHOG_PROXY_TARGET?.trim()
 
 type Json = Record<string, unknown>
 
@@ -144,4 +145,26 @@ function waitlistApiPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), waitlistApiPlugin()],
+  server: POSTHOG_PROXY_TARGET
+    ? {
+        proxy: {
+          '/ph': {
+            target: POSTHOG_PROXY_TARGET,
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/ph/, ''),
+          },
+        },
+      }
+    : undefined,
+  preview: POSTHOG_PROXY_TARGET
+    ? {
+        proxy: {
+          '/ph': {
+            target: POSTHOG_PROXY_TARGET,
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/ph/, ''),
+          },
+        },
+      }
+    : undefined,
 })
