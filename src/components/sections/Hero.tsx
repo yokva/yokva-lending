@@ -1,4 +1,5 @@
 import { ArrowRight, Sparkles } from 'lucide-react'
+import { captureEvent } from '../../lib/analytics'
 import { type HeroProps } from '../../types/landing'
 
 export function Hero({ copy }: HeroProps) {
@@ -18,6 +19,7 @@ export function Hero({ copy }: HeroProps) {
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <a
             href="#demo"
+            onClick={() => captureEvent('hero_cta_clicked', { location: 'hero' })}
             className="focus-ring inline-flex items-center gap-2 rounded-full border-2 border-[var(--text)] bg-[var(--accent)] px-7 py-3.5 text-sm font-semibold tracking-[0.01em] text-[var(--text)] transition-colors hover:bg-[var(--accent-strong)]"
           >
             <Sparkles size={16} strokeWidth={3} />

@@ -1,7 +1,8 @@
 import { Check, Sparkles } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import afterImage from '../../assets/after.png'
 import beforeImage from '../../assets/before.png'
+import { captureEvent } from '../../lib/analytics'
 import { cn } from '../../lib/cn'
 import { type DemoPhase, type DemoPreset, type InteractiveDemoProps } from '../../types/landing'
 
@@ -23,6 +24,9 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
   const [contextDraft, setContextDraft] = useState(copy.contextPlaceholder)
   const timersRef = useRef<number[]>([])
   const contextTimerRef = useRef<number | null>(null)
+  const sliderTrackLastAtRef = useRef(0)
+  const runIdRef = useRef(0)
+  const completedRunIdRef = useRef<number | null>(null)
 
   const clearTimers = useCallback(() => {
     for (const timerId of timersRef.current) {
@@ -112,38 +116,51 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
     contextTimerRef.current = window.setTimeout(typeNext, 100)
   }, [activePreset.context, clearContextTimer, phase, prefersReducedMotion])
 
-  const runPipeline = useCallback(() => {
-    clearTimers()
-    setSplitPosition(8)
+  const runPipeline = useCallback(
+    (trigger: 'button' | 'preset_switch' = 'button') => {
+      clearTimers()
+      setSplitPosition(8)
+      runIdRef.current += 1
+      completedRunIdRef.current = null
 
-    if (prefersReducedMotion) {
-      setPhase('done')
-      setSplitPosition(100)
-      return
-    }
+      captureEvent('demo_transform_started', {
+        trigger,
+        run_id: runIdRef.current,
+        preset_name: activePreset.name,
+        preset_style: activePreset.style,
+        platform: activePreset.platform,
+      })
 
-    setPhase('scan')
-    timersRef.current.push(
-      window.setTimeout(() => {
-        setPhase('enhance')
-        setSplitPosition(47)
-      }, 950),
-    )
-
-    timersRef.current.push(
-      window.setTimeout(() => {
-        setPhase('assemble')
-        setSplitPosition(82)
-      }, 2150),
-    )
-
-    timersRef.current.push(
-      window.setTimeout(() => {
+      if (prefersReducedMotion) {
         setPhase('done')
         setSplitPosition(100)
-      }, 3380),
-    )
-  }, [clearTimers, prefersReducedMotion])
+        return
+      }
+
+      setPhase('scan')
+      timersRef.current.push(
+        window.setTimeout(() => {
+          setPhase('enhance')
+          setSplitPosition(47)
+        }, 950),
+      )
+
+      timersRef.current.push(
+        window.setTimeout(() => {
+          setPhase('assemble')
+          setSplitPosition(82)
+        }, 2150),
+      )
+
+      timersRef.current.push(
+        window.setTimeout(() => {
+          setPhase('done')
+          setSplitPosition(100)
+        }, 3380),
+      )
+    },
+    [activePreset.name, activePreset.platform, activePreset.style, clearTimers, prefersReducedMotion],
+  )
 
   const handleAction = () => {
     if (phase !== 'idle' && phase !== 'done') {
@@ -155,10 +172,19 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
       setSplitPosition(0)
     }
 
-    runPipeline()
+    runPipeline('button')
   }
 
   const handlePresetSelect = (index: number) => {
+    const selectedPreset = copy.presets[index]
+
+    captureEvent('demo_preset_selected', {
+      preset_name: selectedPreset?.name,
+      preset_style: selectedPreset?.style,
+      platform: selectedPreset?.platform,
+      source: 'manual',
+    })
+
     if (index === presetIndex && phase !== 'idle') {
       return
     }
@@ -169,7 +195,7 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
     setSplitPosition(0)
 
     if (!prefersReducedMotion) {
-      const timerId = window.setTimeout(() => runPipeline(), 160)
+      const timerId = window.setTimeout(() => runPipeline('preset_switch'), 160)
       timersRef.current.push(timerId)
     }
   }
@@ -178,6 +204,32 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
     clearTimers()
     setPhase('done')
     setSplitPosition(value)
+  }
+
+  const trackSliderInteraction = useCallback(
+    (source: 'mouse' | 'touch' | 'keyboard') => {
+      const now = Date.now()
+      if (now - sliderTrackLastAtRef.current < 700) {
+        return
+      }
+
+      sliderTrackLastAtRef.current = now
+      captureEvent('slider_interacted', {
+        source,
+        split_position: Math.round(splitPosition),
+        phase,
+        preset_name: activePreset.name,
+        preset_style: activePreset.style,
+        platform: activePreset.platform,
+      })
+    },
+    [activePreset.name, activePreset.platform, activePreset.style, phase, splitPosition],
+  )
+
+  const handleSliderKeyUp = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) {
+      trackSliderInteraction('keyboard')
+    }
   }
 
   const isRunning = phase !== 'idle' && phase !== 'done'
@@ -190,6 +242,25 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
     [copy.presets, presetIndex],
   )
   const visibleOutputPack = isCompact ? outputPack.slice(0, 2) : outputPack
+
+  useEffect(() => {
+    if (phase !== 'done') {
+      return
+    }
+
+    const runId = runIdRef.current
+    if (!runId || completedRunIdRef.current === runId) {
+      return
+    }
+
+    completedRunIdRef.current = runId
+    captureEvent('demo_transform_completed', {
+      run_id: runId,
+      preset_name: activePreset.name,
+      preset_style: activePreset.style,
+      platform: activePreset.platform,
+    })
+  }, [activePreset.name, activePreset.platform, activePreset.style, phase])
 
   const statusText = useMemo(() => {
     switch (phase) {
@@ -502,6 +573,9 @@ export function InteractiveDemo({ copy }: InteractiveDemoProps) {
                 max={100}
                 value={Math.round(splitPosition)}
                 onChange={(event) => handleCompareChange(Number(event.target.value))}
+                onMouseUp={() => trackSliderInteraction('mouse')}
+                onTouchEnd={() => trackSliderInteraction('touch')}
+                onKeyUp={handleSliderKeyUp}
                 className="range-slider mt-2 w-full"
                 aria-label={copy.sliderLabel}
               />

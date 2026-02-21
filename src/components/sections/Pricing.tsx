@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react'
+import { captureEvent } from '../../lib/analytics'
 import { cn } from '../../lib/cn'
 import { useReveal } from '../../hooks/useReveal'
 import { type PricingProps } from '../../types/landing'
@@ -72,6 +73,13 @@ export function Pricing({ copy }: PricingProps) {
 
                 <a
                   href="#waitlist"
+                  onClick={() =>
+                    captureEvent('pricing_cta_clicked', {
+                      plan_name: plan.name,
+                      plan_price: plan.price,
+                      plan_period: plan.period,
+                    })
+                  }
                   className={cn(
                     'focus-ring mt-7 inline-flex rounded-full border-2 border-[var(--text)] px-5 py-3 text-sm font-semibold transition-colors',
                     plan.popular

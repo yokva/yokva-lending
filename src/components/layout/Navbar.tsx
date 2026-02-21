@@ -1,3 +1,4 @@
+import { captureEvent } from '../../lib/analytics'
 import { cn } from '../../lib/cn'
 import { type NavbarProps } from '../../types/landing'
 
@@ -21,6 +22,7 @@ export function Navbar({ copy, isScrolled }: NavbarProps) {
 
         <a
           href="#waitlist"
+          onClick={() => captureEvent('navbar_waitlist_clicked', { location: 'navbar' })}
           className="focus-ring inline-flex items-center rounded-full border-2 border-[var(--text)] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--text)] transition-colors hover:bg-[var(--accent-strong)] sm:px-5"
         >
           <span className="sm:hidden">Join</span>

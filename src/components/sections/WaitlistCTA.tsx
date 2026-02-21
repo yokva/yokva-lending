@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react'
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useReveal } from '../../hooks/useReveal'
+import { captureEvent, identifyUser } from '../../lib/analytics'
 import { fetchWaitlist, joinWaitlist } from '../../lib/waitlistApi'
 import { cn } from '../../lib/cn'
 import { type WaitlistProps } from '../../types/landing'
@@ -165,21 +166,40 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
     event.preventDefault()
 
     const normalized = email.trim().toLowerCase()
+    const alreadyOnList = savedEmails.includes(normalized)
+
+    captureEvent('waitlist_submit_attempt', {
+      source: 'waitlist_form',
+      turnstile_enabled: turnstileEnabled,
+    })
+
     if (!EMAIL_REGEX.test(normalized)) {
       setError(copy.errorInvalidEmail)
       setMessage(null)
+      captureEvent('waitlist_submit_failed', {
+        source: 'waitlist_form',
+        reason: 'invalid_email',
+      })
       return
     }
 
     if (!agreed) {
       setError(copy.errorConsentRequired)
       setMessage(null)
+      captureEvent('waitlist_submit_failed', {
+        source: 'waitlist_form',
+        reason: 'consent_missing',
+      })
       return
     }
 
     if (turnstileEnabled && !turnstileToken) {
       setError(copy.errorTurnstileRequired)
       setMessage(null)
+      captureEvent('waitlist_submit_failed', {
+        source: 'waitlist_form',
+        reason: 'turnstile_missing',
+      })
       return
     }
 
@@ -194,11 +214,22 @@ export function WaitlistCTA({ copy }: WaitlistProps) {
       setMessage(copy.success)
       setTurnstileToken('')
 
+      identifyUser(normalized, { email: normalized, source: 'waitlist_form' })
+      captureEvent('waitlist_joined', {
+        source: 'waitlist_form',
+        turnstile_enabled: turnstileEnabled,
+        already_on_list: alreadyOnList,
+      })
+
       if (turnstileEnabled && widgetContainer && window.turnstile) {
         window.turnstile.reset(widgetContainer)
       }
     } catch {
       setError(copy.errorNetwork)
+      captureEvent('waitlist_submit_failed', {
+        source: 'waitlist_form',
+        reason: 'network_or_server',
+      })
     } finally {
       setSubmitting(false)
     }

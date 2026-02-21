@@ -27,7 +27,29 @@ npm run preview
 - `src/types/landing.ts` typed content contracts
 - `src/hooks/useReveal.ts` IntersectionObserver reveal hook
 - `src/lib/waitlistApi.ts` frontend waitlist API client
+- `src/lib/analytics.ts` PostHog init + capture helpers
 - `vite.config.ts` local waitlist API middleware (`/api/waitlist`)
+
+## PostHog analytics
+
+Set frontend variables in Cloudflare Pages (`Settings -> Variables and secrets`):
+
+- `VITE_PUBLIC_POSTHOG_KEY`
+- `VITE_PUBLIC_POSTHOG_HOST` (`https://us.i.posthog.com` or `https://eu.i.posthog.com`)
+- Optional: `VITE_PUBLIC_POSTHOG_UI_HOST`
+
+Events tracked in code:
+
+- `hero_cta_clicked`
+- `navbar_waitlist_clicked`
+- `demo_transform_started`
+- `demo_transform_completed`
+- `demo_preset_selected`
+- `slider_interacted`
+- `pricing_cta_clicked`
+- `waitlist_submit_attempt`
+- `waitlist_submit_failed`
+- `waitlist_joined`
 
 ## Local waitlist storage
 
